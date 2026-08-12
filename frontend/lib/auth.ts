@@ -1,6 +1,6 @@
 import type { NextAuthOptions } from "next-auth";
 import GitHubProvider from "next-auth/providers/github";
-import { upsertUser } from "./backend";
+import { upsertUser, type GithubProfile } from "./backend";
 
 export const authOptions: NextAuthOptions = {
   secret: process.env.AUTH_SECRET,
@@ -26,10 +26,12 @@ export const authOptions: NextAuthOptions = {
       if (account?.access_token) {
         token.accessToken = account.access_token;
 
+        const p = profile as GithubProfile | undefined;
+        token.id = p?.id ? String(p.id) : undefined;
+        token.login = p?.login;
+
         try {
-          await upsertUser(
-            profile as { id: number; login: string; name: string | null; avatar_url: string }
-          );
+          await upsertUser(p as GithubProfile);
         } catch (err) {
           // Best-effort only - repo-connect re-syncs the user row before it's actually needed
           console.error("Failed to sync user to backend", err);
@@ -37,8 +39,11 @@ export const authOptions: NextAuthOptions = {
       }
       return token;
     },
-    // No accessToken added here - keeps it out of the client-visible session
-    async session({ session }) {
+    // Maps non-sensitive GitHub identity into the client session. The access
+    // token is deliberately NOT included here - it only lives in the JWT.
+    async session({ session, token }) {
+      session.user.id = token.id ?? "";
+      session.user.login = token.login ?? "";
       return session;
     },
   },
