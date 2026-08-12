@@ -1,7 +1,7 @@
 import type { ButtonHTMLAttributes } from "react";
 
 type Variant = "primary" | "secondary" | "ghost" | "danger";
-type Size = "sm" | "md";
+type Size = "sm" | "md" | "icon";
 
 const variantClass: Record<Variant, string> = {
   primary:
@@ -17,6 +17,7 @@ const variantClass: Record<Variant, string> = {
 const sizeClass: Record<Size, string> = {
   sm: "px-2.5 py-1.5 text-xs",
   md: "px-3.5 py-2 text-sm",
+  icon: "p-2",
 };
 
 export function Button({

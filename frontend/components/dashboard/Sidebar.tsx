@@ -6,7 +6,7 @@ import { ActivityIcon, BotLogo, RepoIcon, RuleIcon } from "./icons";
 
 export type ViewId = "repositories" | "activity" | "rules";
 
-const navItems: { id: ViewId; label: string; icon: typeof RepoIcon }[] = [
+export const navItems: { id: ViewId; label: string; icon: typeof RepoIcon }[] = [
   { id: "repositories", label: "Repositories", icon: RepoIcon },
   { id: "activity", label: "Activity", icon: ActivityIcon },
   { id: "rules", label: "Rules", icon: RuleIcon },
@@ -22,9 +22,9 @@ export function Sidebar({
   user: { name?: string | null; login?: string; image?: string | null };
 }) {
   return (
-    <aside className="flex h-full w-60 shrink-0 flex-col border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+    <aside className="hidden h-full w-60 shrink-0 flex-col border-r border-zinc-200 bg-white md:flex dark:border-zinc-800 dark:bg-zinc-900">
       <div className="flex items-center gap-2.5 px-5 py-5">
-        <BotLogo className="h-8 w-8" />
+        <BotLogo className="h-8 w-8 text-zinc-900 dark:text-zinc-100" />
         <div className="leading-tight">
           <p className="text-sm font-semibold tracking-tight">Autobot</p>
           <p className="text-xs text-zinc-400 dark:text-zinc-500">
@@ -74,7 +74,7 @@ export function Sidebar({
           <div className="min-w-0 flex-1 leading-tight">
             <p className="truncate text-sm font-medium">{user.name ?? user.login}</p>
             <p className="truncate text-xs text-zinc-400 dark:text-zinc-500">
-              @{user.login}
+              {user.login ? `@${user.login}` : "\u00a0"}
             </p>
           </div>
           <button

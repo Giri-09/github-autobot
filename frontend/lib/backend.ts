@@ -130,11 +130,25 @@ export async function disconnectRepository(
   if (!res.ok) throw new Error("failed to disconnect repository");
 }
 
-export async function getEvents(githubUserId: string): Promise<RepoEvent[]> {
-  const res = await internalFetch(
-    `/events?githubUserId=${encodeURIComponent(githubUserId)}`
-  );
+export async function getEvents(
+  githubUserId: string,
+  opts?: { limit?: number; beforeId?: number }
+): Promise<{ events: RepoEvent[]; has_more: boolean }> {
+  const params = new URLSearchParams({ githubUserId });
+  if (opts?.limit) params.set("limit", String(opts.limit));
+  if (opts?.beforeId) params.set("before_id", String(opts.beforeId));
+  const res = await internalFetch(`/events?${params.toString()}`);
   if (!res.ok) throw new Error("failed to load events");
+  return res.json();
+}
+
+export async function getLatestEvent(
+  githubUserId: string
+): Promise<{ latest_id: number; count: number }> {
+  const res = await internalFetch(
+    `/events/latest?githubUserId=${encodeURIComponent(githubUserId)}`
+  );
+  if (!res.ok) throw new Error("failed to check events");
   return res.json();
 }
 

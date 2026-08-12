@@ -9,7 +9,13 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const events = await getEvents(token.id);
+    const url = new URL(req.url);
+    const limitParam = url.searchParams.get("limit");
+    const beforeParam = url.searchParams.get("beforeId");
+    const events = await getEvents(token.id, {
+      ...(limitParam ? { limit: Number(limitParam) } : {}),
+      ...(beforeParam ? { beforeId: Number(beforeParam) } : {}),
+    });
     return NextResponse.json(events);
   } catch {
     return NextResponse.json(

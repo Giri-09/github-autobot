@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { Spinner } from "@/components/ui/Spinner";
 import { RuleFormModal } from "./RuleFormModal";
 import { PlusIcon, RuleIcon, SlackIcon } from "./icons";
@@ -46,6 +47,7 @@ export function RulesView({ repos }: { repos: ConnectedRepository[] }) {
   const [editingRule, setEditingRule] = useState<Rule | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const loadRules = useCallback(async (repositoryId: number) => {
     setLoading(true);
@@ -53,7 +55,14 @@ export function RulesView({ repos }: { repos: ConnectedRepository[] }) {
       const res = await fetch(
         `/api/rules?repositoryId=${encodeURIComponent(repositoryId)}`
       );
-      if (res.ok) setRules(await res.json());
+      if (res.ok) {
+        setRules(await res.json());
+        setLoadError(null);
+      } else {
+        setLoadError("Could not load rules. Please try again.");
+      }
+    } catch {
+      setLoadError("Could not reach the backend. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -67,7 +76,12 @@ export function RulesView({ repos }: { repos: ConnectedRepository[] }) {
         `/api/rules?repositoryId=${encodeURIComponent(selectedRepoId)}`
       );
       if (cancelled) return;
-      setRules(res.ok ? await res.json() : []);
+      if (res.ok) {
+        setRules(await res.json());
+        setLoadError(null);
+      } else {
+        setLoadError("Could not load rules. Please try again.");
+      }
       setLoading(false);
     })();
     return () => {
@@ -109,9 +123,13 @@ export function RulesView({ repos }: { repos: ConnectedRepository[] }) {
           body: JSON.stringify({ ...toInput(rule), enabled: !rule.enabled }),
         }
       );
-      if (res.ok) await loadRules(selectedRepoId);
+      if (res.ok) {
+        await loadRules(selectedRepoId);
+      } else {
+        setLoadError("Could not update the rule. Please try again.");
+      }
     } catch {
-      // keep current list on failure
+      setLoadError("Could not update the rule. Please try again.");
     }
   };
 
@@ -123,9 +141,13 @@ export function RulesView({ repos }: { repos: ConnectedRepository[] }) {
         `/api/rules/${rule.id}?repositoryId=${encodeURIComponent(selectedRepoId)}`,
         { method: "DELETE" }
       );
-      if (res.ok) await loadRules(selectedRepoId);
+      if (res.ok) {
+        await loadRules(selectedRepoId);
+      } else {
+        setLoadError("Could not delete the rule. Please try again.");
+      }
     } catch {
-      // keep current list on failure
+      setLoadError("Could not delete the rule. Please try again.");
     }
   };
 
@@ -174,6 +196,13 @@ export function RulesView({ repos }: { repos: ConnectedRepository[] }) {
           ))}
         </select>
       </div>
+
+      {loadError && (
+        <ErrorBanner
+          message={loadError}
+          onRetry={selectedRepoId ? () => loadRules(selectedRepoId) : undefined}
+        />
+      )}
 
       {loading ? (
         <div className="flex items-center justify-center gap-2 py-12 text-sm text-zinc-400">

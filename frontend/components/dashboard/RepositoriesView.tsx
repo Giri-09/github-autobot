@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { AlertIcon, ClockIcon, PlusIcon, RepoIcon } from "./icons";
 import type { ConnectedRepository } from "@/lib/backend";
 
@@ -11,15 +12,19 @@ export function RepositoriesView({
   repos,
   onConnect,
   onDisconnect,
+  onRetry,
+  error,
   loading,
 }: {
   repos: ConnectedRepository[];
   onConnect: () => void;
   onDisconnect: (repositoryId: number) => Promise<void>;
+  onRetry: () => void;
+  error: string | null;
   loading: boolean;
 }) {
   const [disconnectingId, setDisconnectingId] = useState<number | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [disconnectError, setDisconnectError] = useState<string | null>(null);
 
   async function handleDisconnect(repo: ConnectedRepository) {
     const confirmed = window.confirm(
@@ -28,31 +33,47 @@ export function RepositoriesView({
     if (!confirmed) return;
 
     setDisconnectingId(repo.id);
-    setError(null);
+    setDisconnectError(null);
     try {
       await onDisconnect(repo.id);
     } catch {
-      setError(`Failed to disconnect ${repo.owner}/${repo.name}. Try again.`);
+      setDisconnectError(
+        `Failed to disconnect ${repo.owner}/${repo.name}. Try again.`
+      );
       setDisconnectingId(null);
     }
   }
   if (repos.length === 0) {
     return (
-      <EmptyState
-        icon={<RepoIcon className="h-5 w-5" />}
-        title="No repositories connected"
-        description="Connect a repository you own and the bot will watch it for issues, pull requests, and pushes."
-        action={
-          <Button onClick={onConnect}>
-            <PlusIcon className="h-4 w-4" /> Connect a repository
-          </Button>
-        }
-      />
+      <div>
+        {(error || disconnectError) && (
+          <ErrorBanner
+            message={error ?? disconnectError ?? ""}
+            onRetry={error ? onRetry : undefined}
+          />
+        )}
+        <EmptyState
+          icon={<RepoIcon className="h-5 w-5" />}
+          title="No repositories connected"
+          description="Connect a repository you own and the bot will watch it for issues, pull requests, and pushes."
+          action={
+            <Button onClick={onConnect}>
+              <PlusIcon className="h-4 w-4" /> Connect a repository
+            </Button>
+          }
+        />
+      </div>
     );
   }
 
   return (
     <div>
+      {(error || disconnectError) && (
+        <ErrorBanner
+          message={error ?? disconnectError ?? ""}
+          onRetry={error ? onRetry : undefined}
+        />
+      )}
       <div className="mb-5 flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold tracking-tight">
@@ -70,13 +91,7 @@ export function RepositoriesView({
       {loading ? (
         <p className="text-sm text-zinc-400">Loading...</p>
       ) : (
-        <>
-          {error && (
-            <p className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-950/40 dark:text-red-400">
-              {error}
-            </p>
-          )}
-          <ul className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <ul className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {repos.map((repo) => (
             <li
               key={repo.id}
@@ -127,7 +142,6 @@ export function RepositoriesView({
             </li>
           ))}
         </ul>
-        </>
       )}
     </div>
   );

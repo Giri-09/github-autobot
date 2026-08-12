@@ -1,8 +1,10 @@
 "use client";
 
-import { Button } from "@/components/ui/Button";
+import { useEffect, useRef } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorBanner } from "@/components/ui/ErrorBanner";
+import { Spinner } from "@/components/ui/Spinner";
 import {
   ActivityIcon,
   GithubIcon,
@@ -29,7 +31,7 @@ function actionTone(log: ActionLog) {
 }
 
 function formatTime(iso: string): string {
-  return new Date(iso).toLocaleString(undefined, {
+  return new Date(iso).toLocaleString("en-US", {
     month: "short",
     day: "numeric",
     hour: "2-digit",
@@ -40,14 +42,43 @@ function formatTime(iso: string): string {
 export function ActivityView({
   events,
   onRefresh,
+  onRetry,
+  onLoadMore,
   loading,
+  loadingMore,
+  hasMore,
+  error,
   live = false,
+  justUpdated = false,
 }: {
   events: RepoEvent[];
   onRefresh: () => void;
+  onRetry: () => void;
+  onLoadMore: () => void;
   loading: boolean;
+  loadingMore: boolean;
+  hasMore: boolean;
+  error: string | null;
   live?: boolean;
+  justUpdated?: boolean;
 }) {
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!hasMore) return;
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting) && !loadingMore) {
+          onLoadMore();
+        }
+      },
+      { rootMargin: "200px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasMore, loadingMore, onLoadMore]);
   return (
     <div>
       <div className="mb-5 flex items-center justify-between">
@@ -59,19 +90,28 @@ export function ActivityView({
         </div>
         <div className="flex items-center gap-3">
           {live && (
-            <span className="inline-flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
               <span className="relative flex h-2 w-2">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
               </span>
-              Auto-refreshing
+              {justUpdated ? "New events" : "Live"}
             </span>
           )}
-          <Button variant="secondary" onClick={onRefresh} disabled={loading}>
-            <RefreshIcon className="h-4 w-4" /> Refresh
-          </Button>
+          <button
+            type="button"
+            onClick={onRefresh}
+            disabled={loading}
+            aria-label="Refresh activity"
+            title="Refresh activity"
+            className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 disabled:opacity-50 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+          >
+            <RefreshIcon className="h-4 w-4" />
+          </button>
         </div>
       </div>
+
+      {error && <ErrorBanner message={error} onRetry={onRetry} />}
 
       {events.length === 0 ? (
         <EmptyState
@@ -80,7 +120,7 @@ export function ActivityView({
           description="Open an issue or pull request on a connected repository and it will show up here within seconds."
         />
       ) : (
-        <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-zinc-200 text-xs uppercase tracking-wide text-zinc-400 dark:border-zinc-800">
@@ -142,6 +182,18 @@ export function ActivityView({
               ))}
             </tbody>
           </table>
+          {hasMore && (
+            <div
+              ref={sentinelRef}
+              className="flex items-center justify-center border-t border-zinc-100 py-3 dark:border-zinc-800"
+            >
+              {loadingMore && (
+                <span className="inline-flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+                  <Spinner className="h-3.5 w-3.5" /> Loading more...
+                </span>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>

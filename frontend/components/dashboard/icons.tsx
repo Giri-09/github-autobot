@@ -1,3 +1,5 @@
+import { Bot } from "lucide-react";
+
 type IconProps = { className?: string };
 
 function base(props: IconProps) {
@@ -22,21 +24,7 @@ export function LogoIcon(props: IconProps) {
 }
 
 export function BotLogo(props: IconProps) {
-  return (
-    <svg
-      viewBox="0 0 64 64"
-      className={props.className ?? "h-5 w-5"}
-      aria-hidden="true"
-    >
-      <rect width="64" height="64" rx="14" fill="#18181b" />
-      <rect x="29" y="14" width="6" height="12" rx="3" fill="#27272a" />
-      <circle cx="32" cy="12" r="3" fill="#10b981" />
-      <rect x="16" y="26" width="32" height="26" rx="9" fill="#27272a" />
-      <circle cx="25" cy="37" r="4" fill="#10b981" />
-      <circle cx="39" cy="37" r="4" fill="#10b981" />
-      <rect x="24" y="44" width="16" height="3" rx="1.5" fill="#52525b" />
-    </svg>
-  );
+  return <Bot className={props.className ?? "h-5 w-5"} aria-hidden="true" />;
 }
 
 export function RepoIcon(props: IconProps) {
