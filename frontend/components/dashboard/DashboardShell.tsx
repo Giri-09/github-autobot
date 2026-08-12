@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Sidebar, type ViewId } from "./Sidebar";
 import { RepositoriesView } from "./RepositoriesView";
 import { ActivityView } from "./ActivityView";
@@ -53,6 +53,19 @@ export function DashboardShell({
       setLoadingEvents(false);
     }
   }, []);
+
+  const refreshEventsSilently = useCallback(async () => {
+    const res = await fetch("/api/events");
+    if (res.ok) setEvents(await res.json());
+  }, []);
+
+  useEffect(() => {
+    if (activeView !== "activity") return;
+    const id = setInterval(() => {
+      void refreshEventsSilently();
+    }, 10000);
+    return () => clearInterval(id);
+  }, [activeView, refreshEventsSilently]);
 
   const loadGithubRepos = useCallback(async () => {
     setGithubReposLoading(true);
@@ -115,6 +128,7 @@ export function DashboardShell({
               events={events}
               onRefresh={refreshEvents}
               loading={loadingEvents}
+              live
             />
           )}
           {activeView === "rules" && <RulesView repos={repos} />}

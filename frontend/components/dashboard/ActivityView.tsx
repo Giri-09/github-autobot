@@ -41,10 +41,12 @@ export function ActivityView({
   events,
   onRefresh,
   loading,
+  live = false,
 }: {
   events: RepoEvent[];
   onRefresh: () => void;
   loading: boolean;
+  live?: boolean;
 }) {
   return (
     <div>
@@ -55,9 +57,20 @@ export function ActivityView({
             Events received from your repositories and the actions the bot took
           </p>
         </div>
-        <Button variant="secondary" onClick={onRefresh} disabled={loading}>
-          <RefreshIcon className="h-4 w-4" /> Refresh
-        </Button>
+        <div className="flex items-center gap-3">
+          {live && (
+            <span className="inline-flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+              </span>
+              Auto-refreshing
+            </span>
+          )}
+          <Button variant="secondary" onClick={onRefresh} disabled={loading}>
+            <RefreshIcon className="h-4 w-4" /> Refresh
+          </Button>
+        </div>
       </div>
 
       {events.length === 0 ? (
