@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { signOut } from "next-auth/react";
-import { ActivityIcon, LogoIcon, RepoIcon, RuleIcon } from "./icons";
+import { ActivityIcon, BotLogo, RepoIcon, RuleIcon } from "./icons";
 
 export type ViewId = "repositories" | "activity" | "rules";
 
@@ -24,9 +24,7 @@ export function Sidebar({
   return (
     <aside className="flex h-full w-60 shrink-0 flex-col border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
       <div className="flex items-center gap-2.5 px-5 py-5">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-900 text-white dark:bg-white dark:text-zinc-900">
-          <LogoIcon className="h-4 w-4" />
-        </div>
+        <BotLogo className="h-8 w-8" />
         <div className="leading-tight">
           <p className="text-sm font-semibold tracking-tight">Autobot</p>
           <p className="text-xs text-zinc-400 dark:text-zinc-500">
