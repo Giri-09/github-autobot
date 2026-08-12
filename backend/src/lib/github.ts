@@ -64,6 +64,20 @@ export async function createWebhook(opts: {
   return hook.id;
 }
 
+// Removes the GitHub webhook when a repository is disconnected.
+export function deleteWebhook(opts: {
+  owner: string;
+  name: string;
+  accessToken: string;
+  webhookId: number;
+}): Promise<void> {
+  return githubFetch(
+    `/repos/${opts.owner}/${opts.name}/hooks/${opts.webhookId}`,
+    opts.accessToken,
+    { method: "DELETE" }
+  ).then(() => undefined);
+}
+
 // Issues and pull requests share the same "issue" endpoints on GitHub.
 export function addLabel(opts: {
   owner: string;

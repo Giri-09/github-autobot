@@ -119,6 +119,17 @@ export async function addRepository(body: {
   return res.json();
 }
 
+export async function disconnectRepository(
+  repositoryId: number,
+  githubUserId: number
+): Promise<void> {
+  const res = await internalFetch(`/repositories/${repositoryId}`, {
+    method: "DELETE",
+    body: JSON.stringify({ githubUserId }),
+  });
+  if (!res.ok) throw new Error("failed to disconnect repository");
+}
+
 export async function getEvents(githubUserId: string): Promise<RepoEvent[]> {
   const res = await internalFetch(
     `/events?githubUserId=${encodeURIComponent(githubUserId)}`

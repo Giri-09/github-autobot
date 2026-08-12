@@ -58,7 +58,7 @@ export function DashboardShell({
     setGithubReposLoading(true);
     setGithubReposError(null);
     try {
-      const res = await fetch("/api/repos");
+      const res = await fetch("/api/repos/github");
       if (!res.ok) throw new Error("Failed to load your repositories");
       setGithubRepos(await res.json());
     } catch (e) {
@@ -79,6 +79,19 @@ export function DashboardShell({
     await Promise.all([refreshRepos(), refreshEvents()]);
   }, [refreshRepos, refreshEvents]);
 
+  const handleDisconnected = useCallback(
+    async (repositoryId: number) => {
+      const res = await fetch("/api/repos", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ repositoryId }),
+      });
+      if (!res.ok) throw new Error("failed to disconnect");
+      await Promise.all([refreshRepos(), refreshEvents()]);
+    },
+    [refreshRepos, refreshEvents]
+  );
+
   const connectedFullNames = new Set(
     repos.map((r) => `${r.owner}/${r.name}`)
   );
@@ -88,11 +101,12 @@ export function DashboardShell({
       <Sidebar activeView={activeView} onSelect={setActiveView} user={user} />
 
       <main className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-5xl px-8 py-8">
+        <div className="mx-auto max-w-[1200px] px-8 py-8">
           {activeView === "repositories" && (
             <RepositoriesView
               repos={repos}
               onConnect={openConnect}
+              onDisconnect={handleDisconnected}
               loading={loadingRepos}
             />
           )}

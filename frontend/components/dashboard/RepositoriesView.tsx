@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -9,12 +10,32 @@ import type { ConnectedRepository } from "@/lib/backend";
 export function RepositoriesView({
   repos,
   onConnect,
+  onDisconnect,
   loading,
 }: {
   repos: ConnectedRepository[];
   onConnect: () => void;
+  onDisconnect: (repositoryId: number) => Promise<void>;
   loading: boolean;
 }) {
+  const [disconnectingId, setDisconnectingId] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleDisconnect(repo: ConnectedRepository) {
+    const confirmed = window.confirm(
+      `Disconnect ${repo.owner}/${repo.name}?\n\nThe GitHub webhook and all rules for this repo will be removed.`
+    );
+    if (!confirmed) return;
+
+    setDisconnectingId(repo.id);
+    setError(null);
+    try {
+      await onDisconnect(repo.id);
+    } catch {
+      setError(`Failed to disconnect ${repo.owner}/${repo.name}. Try again.`);
+      setDisconnectingId(null);
+    }
+  }
   if (repos.length === 0) {
     return (
       <EmptyState
@@ -49,7 +70,13 @@ export function RepositoriesView({
       {loading ? (
         <p className="text-sm text-zinc-400">Loading...</p>
       ) : (
-        <ul className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <>
+          {error && (
+            <p className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-950/40 dark:text-red-400">
+              {error}
+            </p>
+          )}
+          <ul className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {repos.map((repo) => (
             <li
               key={repo.id}
@@ -81,21 +108,26 @@ export function RepositoriesView({
                   </Badge>
                 )}
               </div>
-              <div className="mt-4 flex items-center gap-3 border-t border-zinc-100 pt-3 text-xs text-zinc-400 dark:border-zinc-800">
+              <div className="mt-4 flex items-center justify-between gap-3 border-t border-zinc-100 pt-3 text-xs text-zinc-400 dark:border-zinc-800">
                 <span className="inline-flex items-center gap-1">
                   <ClockIcon className="h-3.5 w-3.5" />
                   Connected{" "}
                   {new Date(repo.created_at).toLocaleDateString()}
                 </span>
-                {repo.webhook_id === null && (
-                  <span>
-                    Reconnect to retry webhook setup
-                  </span>
-                )}
+                <button
+                  onClick={() => handleDisconnect(repo)}
+                  disabled={disconnectingId === repo.id}
+                  className="font-medium text-red-500 transition-colors hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {disconnectingId === repo.id
+                    ? "Disconnecting..."
+                    : "Disconnect"}
+                </button>
               </div>
             </li>
           ))}
         </ul>
+        </>
       )}
     </div>
   );

@@ -2,7 +2,7 @@ import { Router } from "express";
 import { pool } from "../db/pool";
 import { asyncHandler } from "../lib/asyncHandler";
 import { logger } from "../lib/logger";
-import { createWebhook } from "../lib/github";
+import { createWebhook, deleteWebhook } from "../lib/github";
 
 const WEBHOOK_BASE_URL = process.env.WEBHOOK_BASE_URL;
 
@@ -96,6 +96,57 @@ repositoriesRouter.post(
     }
 
     res.json(repo);
+  })
+);
+
+repositoriesRouter.delete(
+  "/:id",
+  asyncHandler(async (req, res) => {
+    const repoId = Number(req.params.id);
+    const githubUserId = Number(req.body?.githubUserId);
+    if (!repoId || !githubUserId) {
+      res.status(400).json({ error: "repoId and githubUserId are required" });
+      return;
+    }
+
+    // Ownership check: the repo must belong to the calling user.
+    const repoResult = await pool.query(
+      `SELECT r.id, r.owner, r.name, r.webhook_id, r.github_access_token
+       FROM repositories r
+       JOIN users u ON u.id = r.user_id
+       WHERE r.id = $1 AND u.github_user_id = $2`,
+      [repoId, githubUserId]
+    );
+
+    if (repoResult.rowCount === 0) {
+      res.status(404).json({ error: "repository not found" });
+      return;
+    }
+
+    const repo = repoResult.rows[0];
+
+    // Best-effort webhook cleanup - if the GitHub call fails (revoked token,
+    // deleted repo, etc.) the local row should still be removed.
+    if (repo.webhook_id) {
+      try {
+        await deleteWebhook({
+          owner: repo.owner,
+          name: repo.name,
+          accessToken: repo.github_access_token,
+          webhookId: repo.webhook_id,
+        });
+      } catch (err) {
+        logger.error(
+          { owner: repo.owner, name: repo.name, webhookId: repo.webhook_id, err },
+          "webhook deletion failed"
+        );
+      }
+    }
+
+    // Cascades to the repo's rules, events and action_logs.
+    await pool.query("DELETE FROM repositories WHERE id = $1", [repo.id]);
+
+    res.status(204).end();
   })
 );
 
